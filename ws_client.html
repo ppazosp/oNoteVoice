@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcription WebSocket Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .transcript {
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        .done {
+            color: black;
+        }
+        .current {
+            color: blue;
+            text-decoration: underline;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Transcription WebSocket Client</h1>
+        
+        <div class="controls">
+            <input type="text" id="wsUrl" value="ws://localhost:8765" placeholder="WebSocket URL">
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn" disabled>Disconnect</button>
+        </div>
+        
+        <div id="connectionStatus" class="status disconnected">
+            Disconnected
+        </div>
+        
+        <div class="card">
+            <h2>Transcription</h2>
+            <div id="transcriptionOutput" class="transcript">
+                <span class="done"></span><span class="current"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const wsUrl = document.getElementById('wsUrl');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const transcriptionOutput = document.getElementById('transcriptionOutput');
+
+        function connect() {
+            if (socket) {
+                socket.close();
+            }
+
+            try {
+                socket = new WebSocket(wsUrl.value);
+
+                socket.onopen = function() {
+                    connectionStatus.textContent = 'Connected';
+                    connectionStatus.className = 'status connected';
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                };
+
+                socket.onclose = function() {
+                    connectionStatus.textContent = 'Disconnected';
+                    connectionStatus.className = 'status disconnected';
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                };
+
+                socket.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    connectionStatus.textContent = 'Error: Could not connect';
+                    connectionStatus.className = 'status disconnected';
+                };
+
+                socket.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === 'connection') {
+                        connectionStatus.textContent = `Connection Status: ${data.status}`;
+                    } else if (data.type === 'transcription') {
+                        updateOutput(transcriptionOutput, data.done, data.current);
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to create WebSocket:', error);
+                connectionStatus.textContent = 'Error: Could not connect';
+                connectionStatus.className = 'status disconnected';
+            }
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+        }
+
+        function updateOutput(element, doneText, currentText) {
+            const doneSpan = element.querySelector('.done');
+            const currentSpan = element.querySelector('.current');
+            
+            doneSpan.textContent = doneText;
+            currentSpan.textContent = currentText;
+        }
+
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+    </script>
+</body>
+</html>
