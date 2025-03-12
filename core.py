@@ -148,7 +148,7 @@ def process(index, model, vad, memory, patience, timeout, prompt, source, target
             window.extend(frame)
             audio = sr.AudioData(window, mic.SAMPLE_RATE, mic.SAMPLE_WIDTH)
             with io.BytesIO(audio.get_wav_data()) as audio_file:
-                segments, info = model.transcribe(audio_file, language=source, initial_prompt=''.join(prompts),
+                segments, info = model.transcribe(audio_file, language='es', initial_prompt=''.join(prompts),
                                                   vad_filter=vad)
             segments = [segment for segment in segments]
             start = max(len(window) // mic.SAMPLE_WIDTH / mic.SAMPLE_RATE - patience, 0.0)
