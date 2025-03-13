@@ -35,30 +35,33 @@ def get_mic_index(mic):
 # WebSocket handling functions
 async def broadcast_message(message):
     if not connected_clients:
+        print("No clients connected. Message not sent.")
         return
 
-    # Create a copy of the set to avoid "set changed size during iteration" issues
-    clients = connected_clients.copy()
+    print(f"Broadcasting message: {message}")  # Debugging output
 
-    # Send to all clients, handling any exceptions
+    clients = connected_clients.copy()
     failed_clients = set()
+
     for client in clients:
         try:
             await client.send(message)
+            print(f"Message sent to {client.remote_address}")  # Debugging output
         except websockets.exceptions.ConnectionClosed:
-            # Mark client for removal
+            print(f"Client {client.remote_address} disconnected.")  # Debugging output
             failed_clients.add(client)
         except Exception as e:
-            print(f"Error sending message to client: {e}")
+            print(f"Error sending message to {client.remote_address}: {e}")
             failed_clients.add(client)
 
-    # Remove failed clients from the connected_clients set
     connected_clients.difference_update(failed_clients)
 
 
 # Update your ws_handler to handle the case where path might be omitted
 async def ws_handler(websocket, path=None):
     connected_clients.add(websocket)
+    print(f"Client connected: {websocket.remote_address}")  # Add this line
+
     try:
         await websocket.send(json.dumps({"type": "connection", "status": "connected"}))
         # Keep the connection open and handle client messages if needed
@@ -69,7 +72,7 @@ async def ws_handler(websocket, path=None):
         connected_clients.remove(websocket)
 
 
-def start_websocket_server(host="localhost", port=8765):
+def start_websocket_server(host="100.87.246.86", port=8000):
     global websocket_server, loop
 
     # Define server start function for the event loop
@@ -126,19 +129,13 @@ def send_transcription_via_websocket(done_text, current_text):
         # Combine done_text and current_text to send the full text
         full_text = done_text + current_text
 
-        message = json.dumps({
-            "type": "transcription",
-            "full_text": full_text,  # Send the complete text
-            "done": done_text,  # Still include the individual parts for clients that might need them
-            "current": current_text,
-            "timestamp": __import__('time').time()
-        })
+        message =  full_text
 
         asyncio.run_coroutine_threadsafe(broadcast_message(message), loop)
 
 
-def process(index, model, vad, memory, patience, timeout, prompt, source, target, tsres_queue, tlres_queue, ready,
-            enable_websocket=True, ws_host="localhost", ws_port=8765):
+def process(index, model, vad, memory, patience, prompt, tsres_queue, ready,
+            enable_websocket=True, ws_host="100.87.246.86", ws_port=8000):
     def ts():
         prompts = collections.deque([prompt], memory)
         window = bytearray()
@@ -149,7 +146,7 @@ def process(index, model, vad, memory, patience, timeout, prompt, source, target
             audio = sr.AudioData(window, mic.SAMPLE_RATE, mic.SAMPLE_WIDTH)
             with io.BytesIO(audio.get_wav_data()) as audio_file:
                 segments, info = model.transcribe(audio_file, language='es', initial_prompt=''.join(prompts),
-                                                  vad_filter=vad)
+                                                  vad_filter=vad, word_timestamps=False,beam_size=5, without_timestamps=True)
             segments = [segment for segment in segments]
             start = max(len(window) // mic.SAMPLE_WIDTH / mic.SAMPLE_RATE - patience, 0.0)
             i = 0

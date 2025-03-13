@@ -2,6 +2,11 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 import threading
+
+
+
+import requests
+
 import core
 from cmque import PairDeque, Queue
 
@@ -71,15 +76,11 @@ class App(tk.Tk):
 
         self.memory_label = ttk.Label(self.top_frame, text='Memory:')
         self.memory_spin = ttk.Spinbox(self.top_frame, from_=1, to=10, increment=1, state='readonly')
-        self.memory_spin.set(3)
+        self.memory_spin.set(1)
 
         self.patience_label = ttk.Label(self.top_frame, text='Patience:')
         self.patience_spin = ttk.Spinbox(self.top_frame, from_=1.0, to=20.0, increment=0.5, state='readonly')
-        self.patience_spin.set(5.0)
-
-        self.timeout_label = ttk.Label(self.top_frame, text='Timeout:')
-        self.timeout_spin = ttk.Spinbox(self.top_frame, from_=1.0, to=20.0, increment=0.5, state='readonly')
-        self.timeout_spin.set(5.0)
+        self.patience_spin.set(3.0)
 
         self.mic_label.pack(side='left', padx=(5, 5))
         self.mic_combo.pack(side='left', padx=(0, 5))
@@ -91,8 +92,6 @@ class App(tk.Tk):
         self.memory_spin.pack(side='left', padx=(0, 5))
         self.patience_label.pack(side='left', padx=(5, 5))
         self.patience_spin.pack(side='left', padx=(0, 5))
-        self.timeout_label.pack(side='left', padx=(5, 5))
-        self.timeout_spin.pack(side='left', padx=(0, 5))
 
         # Middle frame (WebSocket settings)
         self.ws_check = ttk.Checkbutton(self.mid_frame, text='Enable WebSocket Server', onvalue=True, offvalue=False)
@@ -100,11 +99,11 @@ class App(tk.Tk):
 
         self.ws_host_label = ttk.Label(self.mid_frame, text='WS Host:')
         self.ws_host_entry = ttk.Entry(self.mid_frame)
-        self.ws_host_entry.insert(0, 'localhost')
+        self.ws_host_entry.insert(0, '100.87.246.86')
 
         self.ws_port_label = ttk.Label(self.mid_frame, text='WS Port:')
         self.ws_port_spin = ttk.Spinbox(self.mid_frame, from_=1024, to=65535, increment=1, state='normal')
-        self.ws_port_spin.set(8765)
+        self.ws_port_spin.set(8000)
 
         self.ws_status_label = ttk.Label(self.mid_frame, text='WebSocket Status: Not Started')
 
@@ -136,7 +135,6 @@ class App(tk.Tk):
         vad = self.vad_check.instate(('selected',))
         memory = int(self.memory_spin.get())
         patience = float(self.patience_spin.get())
-        timeout = float(self.timeout_spin.get())
         prompt = self.prompt_entry.get()
 
         # Removed source and target language settings
@@ -155,8 +153,8 @@ class App(tk.Tk):
         # Pass None for translation text queue since we're not using it
         threading.Thread(
             target=core.process,
-            args=(index, model, vad, memory, patience, timeout, prompt, source, target,
-                  self.ts_text.res_queue, None, self.ready,
+            args=(index, "medium", vad, memory, patience, prompt,
+                  self.ts_text.res_queue, self.ready,
                   enable_websocket, ws_host, ws_port),
             daemon=True
         ).start()
@@ -179,8 +177,58 @@ class App(tk.Tk):
     def stop(self):
         self.ready[0] = False
         self.control_button.config(text='Stopping...', command=None, state='disabled')
+
         if self.ws_check.instate(('selected',)):
             self.ws_status_label.config(text="WebSocket Status: Stopping...")
+
+        # Obtener el texto transcrito
+        transcribed_text = self.ts_text.get("1.0", "end").strip()
+
+        if transcribed_text:
+            # Enviar el texto a Flask para obtener el resumen
+            flask_response = requests.post(
+                "http://127.0.0.1:5000/summarize",
+                json={"text": transcribed_text}
+            )
+
+            if flask_response.status_code == 200:
+                summary = flask_response.json().get("summary", "No summary generated.")
+                print("Summary:", summary)
+
+                # Datos que quieres enviar
+                subject_name = "Lógica"
+                class_name = "Clase 1"
+
+
+                # Construir el JSON con los dos strings
+                data = {
+                    "subject_name" : subject_name,
+                "class_name" : class_name,
+                "summary" : summary
+                }
+
+
+                # Enviar el resumen a Spring Boot
+                spring_response = requests.put(
+                    "http://100.68.193.4:8080/resume",  # Endpoint de Spring Boot
+                    json=data
+                )
+
+                if spring_response.status_code == 200:
+                    print("Summary sent to Spring Boot successfully!")
+                else:
+                    print("Error sending summary to Spring Boot:", spring_response.json())
+
+
+            else:
+                print("Error:", flask_response.json())
+
+            # Cerrar WebSocket (si aplica)
+        try:
+            core.stop_websocket_server()  # Asegúrate de que esta función existe en core.py
+        except Exception as e:
+            print("Error closing WebSocket:", e)
+
         self.stopping()
 
     def stopping(self):
@@ -188,7 +236,10 @@ class App(tk.Tk):
             self.control_button.config(text='Start', command=self.start, state='normal')
             self.ws_status_label.config(text="WebSocket Status: Not Started")
             return
-        self.after(100, self.stopping)
+
+        # Asegurar que solo sigue si ready[0] no es None
+        if self.ready[0] is not False:
+            self.after(100, self.stopping)
 
 
 if __name__ == '__main__':
