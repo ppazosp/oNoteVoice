@@ -22,7 +22,7 @@ def verify_token(token):
     return True  # Puedes reemplazar con una verificación real si lo deseas
 
 
-@app.route('/summarize', methods=['POST'])
+@app.route('/resume', methods=['POST'])
 def summarize_text():
     """
     Genera un resumen del texto proporcionado.
