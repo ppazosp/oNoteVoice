@@ -1,4 +1,4 @@
-# oNoteWhisper - Python transcribing server
+# oNoteVoice - Python transcripting server
 
 **oNoteWhisper** is part of the backend for the **oNote** mobile application. It provides in real time audio transcription service from a local microphone in the server using the faster-whisper library. This server is built oriented to use web sockets to send the real time transcription
 
