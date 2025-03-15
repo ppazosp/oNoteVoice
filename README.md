@@ -1,23 +1,24 @@
-# oNoteWhisper
+# oNoteWhisper - Python transcribing server
 
-In real time audio transcription service from a local microphone in the server using the [fast-whisper](https://github.com/SYSTRAN/faster-whisper) library. We use web sockets to send this transcription, because we want to use this transcription in a mobile application (Kotlin).
+In real time audio transcription service from a local microphone in the server using the faster-whisper library. We use web sockets to send this transcription, because we want to use this transcription in a mobile application (Kotlin).
 
-## Requirements
+--- 
+## Features
 
-For the server side, you need to install the following packages:
+- **Real-time whisper transcription**: Audio chunks transcripted into text
+- **Transcription resume**: automatic post transcription resume of the class
 
-- Python 3.8+
-- [fast-whisper](https://github.com/SYSTRAN/faster-whisper)
-- [SpeechRecognition](https://pypi.org/project/SpeechRecognition)
-- [PyAudio](https://pypi.org/project/PyAudio) 0.2.11+
-- [websocket-server](https://pypi.org/project/websocket-server)
+---
 
+## Technology Stack
 
-## Usage
+- **Python 3.8**
+- **Faster Whisper**: escalable transcription model
+- **SpeechRecognition**: used for microphone audio input (supported by pyaudio)
+- **WebSocket**: communication protocol between this server and the mobile app
 
-To start the server, run the `app.py` script. The server will listen on port 8765 by default.
-The transcription will be in spanish and it will be sent to the client connected to the socket in real time.
-We can change the model to use in the transcription by changing the `model` variable in the web.
+---
+
 ## Q&A
 
 - How does the program work?
