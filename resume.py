@@ -64,9 +64,15 @@ def summarize_text():
                 {"role": "user", "content": prompt}
             ]
         )
-
+        name = 'Clase 1'
+        subject = 'Lógica'
         summary = response.choices[0].message.content
-        return jsonify({"summary": summary})
+        data = {
+            "name": name,
+            "subject": subject,
+            "summary": summary
+        }
+        return jsonify(data)
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
