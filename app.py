@@ -187,29 +187,26 @@ class App(tk.Tk):
         if transcribed_text:
             # Enviar el texto a Flask para obtener el resumen
             flask_response = requests.post(
-                "http://127.0.0.1:5000/summarize",
-                json={"text": transcribed_text}
+                "http://127.0.0.1:5000/resume",
+                json={"summary": transcribed_text}
             )
 
             if flask_response.status_code == 200:
                 summary = flask_response.json().get("summary", "No summary generated.")
                 print("Summary:", summary)
 
-                # Datos que quieres enviar
-                subject_name = "Lógica"
-                class_name = "Clase 1"
+                name = 'Clase 1'
+                subject = 'Lógica'
 
-
-                # Construir el JSON con los dos strings
-                data = {
-                    "subject_name" : subject_name,
-                "class_name" : class_name,
-                "summary" : summary
+                data={
+                    "name": name,
+                    "subject": subject,
+                    "resume": summary,
+                    "transcript": transcribed_text
                 }
 
-
                 # Enviar el resumen a Spring Boot
-                spring_response = requests.put(
+                spring_response = requests.post(
                     "http://100.68.193.4:8080/resume",  # Endpoint de Spring Boot
                     json=data
                 )

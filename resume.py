@@ -34,7 +34,7 @@ def summarize_text():
         schema:
           type: object
           properties:
-            text:
+            summary:
               type: string
               description: Texto a resumir
     responses:
@@ -43,10 +43,10 @@ def summarize_text():
     """
     # Obtener datos del JSON recibido
     data = request.get_json()
-    if not data or "text" not in data:
+    if not data or "summary" not in data:
         return jsonify({"error": "No se encontró la clave 'text' en la solicitud."}), 400
 
-    text = data["text"]
+    text = data["summary"]
 
     # Generar `prompt` para OpenAI
     prompt = f"""

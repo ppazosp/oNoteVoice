@@ -63,7 +63,7 @@ async def ws_handler(websocket, path=None):
     print(f"Client connected: {websocket.remote_address}")  # Add this line
 
     try:
-        await websocket.send(json.dumps({"type": "connection", "status": "connected"}))
+        await websocket.send("Esperando transcripción...")  # Send a welcome message
         # Keep the connection open and handle client messages if needed
         async for message in websocket:
             # Process incoming messages if needed
@@ -103,19 +103,12 @@ def stop_websocket_server():
             # Give connections a chance to close gracefully
             await asyncio.sleep(0.5)
 
-            # Then cancel remaining tasks, but exclude the current task
-            current_task = asyncio.current_task(loop)
-            for task in asyncio.all_tasks(loop):
-                if task is not current_task:
-                    task.cancel()
-                    try:
-                        await asyncio.shield(task)
-                    except asyncio.CancelledError:
-                        pass
-
         try:
             future = asyncio.run_coroutine_threadsafe(shutdown(), loop)
             future.result(timeout=5)  # Wait up to 5 seconds for server to shut down
+            # After the server is closed, stop the loop from another thread
+            loop.call_soon_threadsafe(loop.stop)
+            print("WebSocket server shutdown successfully")
         except Exception as e:
             print(f"Error during WebSocket server shutdown: {e}")
         finally:
